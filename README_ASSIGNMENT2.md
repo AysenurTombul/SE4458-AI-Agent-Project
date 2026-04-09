@@ -19,7 +19,7 @@ This document summarizes the complete SE4458 Assignment 2 implementation for Gro
 
 ## 🗂️ Complete File Structure
 
-### New Directories Created
+## New Directories Created
 
 ```
 se4458-midterm/
