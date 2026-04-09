@@ -1,0 +1,12 @@
+runtime: nodejs20
+env: standard
+instance_class: F1
+
+env_variables:
+  DATABASE_URL: "postgresql://postgres.sluhbekspqkdlcubiniv:240305.Tarays@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
+  DIRECT_URL: "postgresql://postgres.sluhbekspqkdlcubiniv:240305.Tarays@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
+  JWT_SECRET: "super-secret-key-change-me"
+  JWT_EXPIRES_IN: "1d"
+  RATE_LIMIT_MAX_PER_DAY: "10000"
+  GATEWAY_RATE_LIMIT: "10000"
+  TARGET_URL: "http://127.0.0.1:4000"

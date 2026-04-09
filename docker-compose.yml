@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: listing-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-listing_db}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Midterm API
+  api:
+    container_name: listing-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-admin}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-listing_db}
+      DIRECT_URL: ${DIRECT_URL}
+      NODE_ENV: ${NODE_ENV:-development}
+    volumes:
+      - ./src:/app/src
+    command: npm run dev
+
+  # API Gateway
+  gateway:
+    container_name: listing-gateway
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    environment:
+      TARGET_URL: http://api:4000
+      GATEWAY_PORT: 8080
+      GATEWAY_RATE_LIMIT: ${GATEWAY_RATE_LIMIT:-3}
+      NODE_ENV: ${NODE_ENV:-development}
+    command: npm run gateway
+
+  # MCP Server
+  mcp-server:
+    container_name: mcp-server
+    build:
+      context: ./mcp-server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - gateway
+    environment:
+      API_GATEWAY_URL: http://gateway:8080
+      NODE_ENV: ${NODE_ENV:-development}
+    command: npm run dev
+
+  # Agent Backend
+  agent-backend:
+    container_name: agent-backend
+    build:
+      context: ./agent-backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mcp-server
+    environment:
+      PORT: 5000
+      NODE_ENV: ${NODE_ENV:-development}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-3.5-turbo}
+      OLLAMA_API_URL: ${OLLAMA_API_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      API_GATEWAY_URL: http://gateway:8080
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MCP_SERVER_BIN: npx
+      MCP_SERVER_ARGS: '["tsx", "src/index.ts"]'
+    volumes:
+      - ./agent-backend/src:/app/src
+    command: npm run dev
+
+  # React Frontend
+  frontend:
+    container_name: listing-frontend
+    build:
+      context: ./web-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - agent-backend
+    environment:
+      VITE_BACKEND_URL: http://localhost:5000
+    volumes:
+      - ./web-frontend/src:/app/src
+    command: npm run dev
+
+  # Optional: Ollama for local LLM
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data:
+  ollama_data:
+
+networks:
+  default:
+    name: listing-network

@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../ERD.svg"  // Diyagramı ana klasöre ERD.svg adıyla kaydedecek
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  HOST
+  GUEST
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  fullName  String
+  password  String
+  role      Role     @default(GUEST)
+  listings  Listing[]
+  bookings  Booking[] @relation("GuestBookings")
+  reviews   Review[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Listing {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  capacity      Int
+  country       String
+  city          String
+  price         Decimal  @db.Decimal(10, 2)
+  amenities     String[] @default([])
+  hostId        String
+  host          User     @relation(fields: [hostId], references: [id])
+  bookings      Booking[]
+  reviews       Review[]
+  ratingAverage Float    @default(0)
+  ratingCount   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([country, city])
+  @@index([ratingAverage])
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  listingId     String
+  listing       Listing       @relation(fields: [listingId], references: [id])
+  guestId       String
+  guest         User          @relation("GuestBookings", fields: [guestId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  occupantNames String[]
+  status        BookingStatus @default(CONFIRMED)
+  review        Review?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([listingId, startDate, endDate])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  guestId   String
+  guest     User     @relation(fields: [guestId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}

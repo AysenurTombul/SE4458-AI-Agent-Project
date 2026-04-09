@@ -1,0 +1,22 @@
+{
+  "name": "listing-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Listing System APIs",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.5",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2"
+  }
+}

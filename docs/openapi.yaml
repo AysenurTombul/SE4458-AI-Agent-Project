@@ -1,0 +1,268 @@
+openapi: 3.0.3
+info:
+  title: Short Stay API
+  version: 1.0.0
+  description: REST API for managing short-term rentals per SE4458 midterm requirements.
+servers:
+  - url: https://aysenurmidterm.ew.r.appspot.com
+    description: Cloud API
+  - url: http://localhost:4000
+    description: Local API
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        capacity:
+          type: integer
+        country:
+          type: string
+        city:
+          type: string
+        price:
+          type: number
+          format: float
+        ratingAverage:
+          type: number
+        ratingCount:
+          type: integer
+paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                fullName:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [HOST, GUEST, ADMIN]
+      responses:
+        "201":
+          description: Created
+  /api/v1/auth/login:
+    post:
+      summary: Login user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: OK
+  /api/v1/host/listings:
+    post:
+      summary: Insert listing
+      tags: [Host]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                capacity:
+                  type: integer
+                country:
+                  type: string
+                city:
+                  type: string
+                price:
+                  type: number
+                amenities:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Created
+  /api/v1/guest/listings:
+    get:
+      summary: Query listings
+      tags: [Guest]
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: people
+          schema:
+            type: integer
+        - in: query
+          name: country
+          schema:
+            type: string
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: size
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Listing'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+  /api/v1/guest/bookings:
+    post:
+      summary: Book a stay
+      tags: [Guest]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listingId:
+                  type: string
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                names:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Created
+  /api/v1/guest/reviews:
+    post:
+      summary: Review stay
+      tags: [Guest]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: string
+                rating:
+                  type: integer
+                comment:
+                  type: string
+      responses:
+        "201":
+          description: Created
+  /api/v1/admin/reports/listings:
+    get:
+      summary: Report listings with ratings
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: country
+          schema:
+            type: string
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: minRating
+          schema:
+            type: number
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: size
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+  /api/v1/admin/listings/upload:
+    post:
+      summary: Insert listings by CSV file
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Created
